@@ -42,6 +42,7 @@ class Params
     quiet,
     quiet_dmrg,
     smooth,
+    use_tmpdir,
     write_m;
 
     std::string
@@ -95,6 +96,7 @@ class Params
         quiet = 1;
         quiet_dmrg = 1;
         smooth = 0;
+        use_tmpdir = 0;
         write_m = -1;
 
         //string
@@ -106,7 +108,6 @@ class Params
         write_dir = "";
 
         //Get optional params
-        basic.GetYesNo("do_plot_self",do_plot_self);
         basic.GetYesNo("do_plot_self",do_plot_self);
         basic.GetYesNo("do_timing",do_timing);
         basic.GetReal("esaccuracy",esaccuracy);
@@ -135,6 +136,7 @@ class Params
         basic.GetString("runmode",runmode);
         basic.GetYesNo("smooth",smooth);
         basic.GetString("sweep_scheme",sweep_scheme);
+        basic.GetYesNo("use_tmpdir",use_tmpdir);
         basic.GetString("wfname",wfname);
         basic.GetString("write_dir",write_dir);
         basic.GetInt("write_m",write_m);
@@ -155,8 +157,19 @@ class Params
 
         if(write_m > 1)
             Global::options().add(WriteM(write_m));
+
+        if(use_tmpdir)
+            {
+            const char* tempdir = getenv("TMPDIR");
+            std::cout << "Setting write directory to " << tempdir << std::endl;
+            Global::options().add(WriteDir(tempdir));
+            }
+        else
         if(write_dir != "")
+            {
+            std::cout << "Setting write directory to " << write_dir << std::endl;
             Global::options().add(WriteDir(write_dir));
+            }
 
         if(nthreads != "")
             {

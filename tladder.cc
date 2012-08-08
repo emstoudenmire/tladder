@@ -215,6 +215,76 @@ makeLongRangeH(const Model& model, IQMPO& H)
 
     }
 
+void
+printLocalMeasurements(IQMPS& psi)
+    {
+    const Model& model = psi.model();
+    const int N = model.NN();
+
+    //Measure sz on every site
+    for(int j = 1; j <= N; ++j)
+        {
+        psi.position(j);
+        IQTensor zket = model.sz(j)*psi.AA(j);
+        zket.noprime();
+        Real sz = Dot(conj(psi.AA(j)),zket);
+        cout << format("Sz %d %.10f") % j % sz << endl;
+        }
+    }
+
+void
+printOffDiagMeasurements(IQMPS& psiA, IQMPS& psiB, 
+                         const string& Aname = "A", const string& Bname = "B")
+    {
+    const Model& model = psiA.model();
+    const int N = model.NN();
+
+    vector<IQTensor> R(N+2);
+
+    psiA.position(1);
+    psiB.position(1);
+
+    R.at(N-1) = conj(primelink(psiB.AA(N)))*psiA.AA(N);
+    for(int j = N-1; j > 1; --j)
+        {
+        R.at(j-1) = R.at(j);
+        R.at(j-1) *= conj(primelink(psiB.AA(j)));
+        R.at(j-1) *= psiA.AA(j);
+        }
+
+    //Measure sz on every site
+    IQTensor L;
+    for(int j = 1; j <= N; ++j)
+        {
+        IQTensor ket = psiA.AA(j);
+        if(j != 1) ket *= L;
+        ket *= model.sz(j);
+
+        Real sz = -1000;
+        if(j == N)
+            {
+            sz = Dot(conj(primed(psiB.AA(j))),ket);
+            }
+        else
+            {
+            ket *= conj(primed(psiB.AA(j)));
+            sz = Dot(R.at(j),ket);
+            }
+
+        cout << format("<%s|Sz|%s> %d %.10f") % Bname % Aname % j % sz << endl;
+
+        if(j == 1)
+            {
+            L = psiA.AA(j)*conj(primelink(psiB.AA(j)));
+            }
+        else
+            {
+            L *= psiA.AA(j);
+            L *= conj(primelink(psiB.AA(j)));
+            }
+        }
+    }
+
 int main(int argc, char* argv[])
     {
     //Get parameter file
@@ -354,8 +424,12 @@ int main(int argc, char* argv[])
         En = dmrg(psi,H,sweeps,opts,Quiet(params.quiet_dmrg));
         cout << format("GS Energy = %.10f\n") % En;
 
+        cout << "Printing local measurements" << endl;
+        printLocalMeasurements(psi);
+
         writeToFile(format("gs_psi_%s_%.4f")%params.sweep_param%swp_param,psi);
         writeToFile(model_name,model);
+
         }
 
 
@@ -434,14 +508,14 @@ int main(int argc, char* argv[])
             cout << format("   %d  %.10f\n") % s % energy.at(s);
             }
 
-        cout << "Updating overlap matrix..." << endl;
+        //cout << "Updating overlap matrix..." << endl;
         for(int s = 0; s < state; ++s)
             {
             olap.el(s,state) = psiphi(psi.at(s),newpsi);
             olap.el(state,s) = olap.el(s,state);
             }
 
-        cout << "Updating Heff matrix..." << endl;
+        //cout << "Updating Heff matrix..." << endl;
         for(int s = 0; s < state; ++s)
             {
             Heff.el(s,state) = psiHphi(psi.at(s),H,newpsi);
@@ -474,6 +548,7 @@ int main(int argc, char* argv[])
             cout << endl;
             }
 
+        /*
         cout << "Eigenvalues of Heff matrix:" << endl;
         EigenValues(Heff,eigs,U);
         for(int s = 0; s < nstates; ++s)
@@ -502,9 +577,28 @@ int main(int argc, char* argv[])
                 }
             cout << endl;
             }
+        */
 
         psi.push_back(newpsi);
         }
+
+    for(int state = 0; state < nstates; ++state)
+        {
+        cout << format("Printing local measurements for state %d") % state << endl;
+        printLocalMeasurements(psi.at(state));
+        cout << "\n\n" << endl;
+        }
+
+    for(int state = 0; state < nstates; ++state)
+    for(int other = state+1; other < nstates; ++other)
+        {
+        string st_name = (format("%d")%state).str();
+        string ot_name = (format("%d")%other).str();
+        cout << format("Printing overlap measurements for states %s and %s\n")% st_name % ot_name << endl;
+        printOffDiagMeasurements(psi.at(state),psi.at(other),st_name,ot_name);
+        }
+
+    cout << "\n\nDone" << endl;
 
     } //end runmode gap
     else

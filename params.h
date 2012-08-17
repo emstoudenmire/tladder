@@ -42,6 +42,7 @@ class Params
     quiet,
     quiet_dmrg,
     smooth,
+    triplet_sector,
     use_tmpdir,
     write_m;
 
@@ -136,6 +137,7 @@ class Params
         basic.GetString("runmode",runmode);
         basic.GetYesNo("smooth",smooth);
         basic.GetString("sweep_scheme",sweep_scheme);
+        basic.GetYesNo("triplet_sector",triplet_sector);
         basic.GetYesNo("use_tmpdir",use_tmpdir);
         basic.GetString("wfname",wfname);
         basic.GetString("write_dir",write_dir);

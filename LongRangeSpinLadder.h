@@ -28,7 +28,15 @@ class LongRangeSpinLadder : public MPOBuilder
         f_(&f)
         { }
 
-    operator const IQMPO&() { init(); return H; }
+    operator const IQMPO&() { init(); return QH; }
+
+    operator const MPO&() 
+        { 
+        init(); 
+        if(H.isNull())
+            H = QH.toMPO();
+        return H; 
+        }
 
     private:
 
@@ -39,7 +47,8 @@ class LongRangeSpinLadder : public MPOBuilder
     const ExpFit &fit1_,
                  &fitXY_,
                  &fitZ_;
-    IQMPO H;
+    IQMPO QH;
+    MPO H;
 
     const Callable* f_;
 
@@ -49,7 +58,7 @@ class LongRangeSpinLadder : public MPOBuilder
     void
     init()
         {
-        H = IQMPO(model);
+        QH = IQMPO(model);
         const int N = model.NN();
 
         //Determine number of complex chi's
@@ -129,7 +138,7 @@ class LongRangeSpinLadder : public MPOBuilder
         for(int j = 1; j <= N; ++j)
             {
             //Create j^th A (an IQTensor)
-            IQTensor &W = H.AAnc(j);
+            IQTensor &W = QH.AAnc(j);
             IQIndex row = conj(iqlinks.at(j-1)),
                     col = iqlinks.at(j);
 
@@ -314,8 +323,8 @@ class LongRangeSpinLadder : public MPOBuilder
 
             }
 
-        H.AAnc(1) = makeLedge(iqlinks.at(0),start_inds) * H.AA(1);
-        H.AAnc(N) = H.AA(N) * makeRedge(conj(iqlinks.at(N)),end_inds); 
+        QH.AAnc(1) = makeLedge(iqlinks.at(0),start_inds) * QH.AA(1);
+        QH.AAnc(N) = QH.AA(N) * makeRedge(conj(iqlinks.at(N)),end_inds); 
 
         }
 

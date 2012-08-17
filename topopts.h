@@ -13,7 +13,8 @@ class TopOpts : public DMRGObserver
     typedef DMRGObserver 
     Parent;
 
-    TopOpts(const IQMPS& psi, const SpinHalf& model, const std::string& pfix = "");
+    TopOpts(//const IQMPS& psi, 
+            const SpinHalf& model, const std::string& pfix = "");
 
     const std::string& 
     prefix() const { return prefix_; }
@@ -46,7 +47,7 @@ class TopOpts : public DMRGObserver
     // Data Members
     //
 
-    const IQMPS& psi_;
+    //const IQMPS& psi_;
     const SpinHalf& model_;
 
     bool do_plot_self;
@@ -64,9 +65,10 @@ class TopOpts : public DMRGObserver
     };
 
 inline TopOpts::
-TopOpts(const IQMPS& psi, const SpinHalf& model, const std::string& pfix)
+TopOpts(//const IQMPS& psi,
+        const SpinHalf& model, const std::string& pfix)
     : 
-    psi_(psi), 
+    //psi_(psi), 
     model_(model), 
     do_plot_self(true),
     notify_times_(-1), 
@@ -105,7 +107,7 @@ measure(int sw, int ha, int b, const SVDWorker& svd, Real energy,
 
 
     //Notify where the DMRG worker is every 'notify_times' sites
-    if(notify_times_ > 0 && (b+1)%(psi_.NN()/notify_times_) == 0)
+    if(notify_times_ > 0 && (b+1)%(model_.NN()/notify_times_) == 0)
         std::cout << "In sweep " << sw << ", reached bond " << b << std::endl;
 
 

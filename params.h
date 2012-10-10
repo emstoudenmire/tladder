@@ -19,6 +19,7 @@ class Params
     param_end,
     param_start,
     param_step,
+    pinning,
     xi;
 
     int
@@ -42,6 +43,7 @@ class Params
     quiet,
     quiet_dmrg,
     smooth,
+    stagger_pinning,
     triplet_sector,
     use_tmpdir,
     write_m;
@@ -75,6 +77,7 @@ class Params
         param_end = -37;
         param_start = -37;
         param_step = -1;
+        pinning = 0;
         xi = 1;
 
         //int
@@ -97,6 +100,7 @@ class Params
         quiet = 1;
         quiet_dmrg = 1;
         smooth = 0;
+        stagger_pinning = 0;
         use_tmpdir = 0;
         write_m = -1;
 
@@ -131,11 +135,13 @@ class Params
         basic.GetReal("param_end",param_end);
         basic.GetReal("param_start",param_start);
         basic.GetReal("param_step",param_step);
+        basic.GetReal("pinning",pinning);
         basic.GetYesNo("printH",printH);
         basic.GetYesNo("quiet",quiet);
         basic.GetYesNo("quiet_dmrg",quiet_dmrg);
         basic.GetString("runmode",runmode);
         basic.GetYesNo("smooth",smooth);
+        basic.GetYesNo("stagger_pinning",stagger_pinning);
         basic.GetString("sweep_scheme",sweep_scheme);
         basic.GetYesNo("triplet_sector",triplet_sector);
         basic.GetYesNo("use_tmpdir",use_tmpdir);

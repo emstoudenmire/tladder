@@ -4,29 +4,50 @@
 #include "fitting.h"
 #include "hambuilder.h"
 
+#define Cout std::cout
+#define Endl std::endl
+#define Format boost::format
+
+Option inline
+StaggerPinning(bool val)
+    {
+    return Option("StaggerPinning",val);
+    }
+
+
 class LongRangeSpinLadder : public MPOBuilder
     {
     public:
 
     LongRangeSpinLadder(const Model& model_,
-                        const ExpFit& fit1, const ExpFit& fitXY, const ExpFit& fitZ)
+                        const ExpFit& fit1, const ExpFit& fitXY, const ExpFit& fitZ,
+                        const Option& opt1 = Option(), const Option& opt2 = Option())
         : 
         MPOBuilder(model_),
+        initted_(false),
         fit1_(fit1),
         fitXY_(fitXY),
         fitZ_(fitZ),
-        f_(0)
-        { }
+        f_(0),
+        pin_(0)
+        {
+        parseOpts(opt1,opt2);
+        }
 
     LongRangeSpinLadder(const Model& model_, const Callable& f,
-                        const ExpFit& fit1, const ExpFit& fitXY, const ExpFit& fitZ)
+                        const ExpFit& fit1, const ExpFit& fitXY, const ExpFit& fitZ,
+                        const Option& opt1 = Option(), const Option& opt2 = Option())
         : 
         MPOBuilder(model_),
+        initted_(false),
         fit1_(fit1),
         fitXY_(fitXY),
         fitZ_(fitZ),
-        f_(&f)
-        { }
+        f_(&f),
+        pin_(0)
+        { 
+        parseOpts(opt1,opt2);
+        }
 
     operator const IQMPO&() { init(); return QH; }
 
@@ -44,6 +65,8 @@ class LongRangeSpinLadder : public MPOBuilder
     //
     // Data Members
 
+    bool initted_;
+
     const ExpFit &fit1_,
                  &fitXY_,
                  &fitZ_;
@@ -52,12 +75,25 @@ class LongRangeSpinLadder : public MPOBuilder
 
     const Callable* f_;
 
+    Real pin_;
+    bool stagger_pinning_;
+
     //
     /////////////
 
     void
+    parseOpts(const Option& opt1, const Option& opt2)
+        {
+        OptionSet oset(opt1,opt2);
+        pin_ = oset.realOrDefault("Pinning",0);
+        stagger_pinning_ = oset.boolOrDefault("StaggerPinning",false);
+        }
+
+    void
     init()
         {
+        if(initted_) return;
+
         QH = IQMPO(model);
         const int N = model.NN();
 
@@ -151,6 +187,22 @@ class LongRangeSpinLadder : public MPOBuilder
             //Identity string operators
             W += model.id(j) * row(ds) * col(ds);
             W += model.id(j) * row(k) * col(k);
+
+            //Onsite pinning field
+            if(j < 3 && pin_ != 0)
+                {
+                if(stagger_pinning_)
+                    {
+                    Real pval = (j%2 == 1 ? +pin_ : -pin_);
+                    Cout << Format("Including *staggered* pinning at site %d, strength %.10f") % j % pval << Endl;
+                    W += model.sx(j) * row(k) * col(ds) * pval;
+                    }
+                else
+                    {
+                    Cout << Format("Including pinning at site %d, strength %.10f") % j % pin_ << Endl;
+                    W += model.sx(j) * row(k) * col(ds) * pin_;
+                    }
+                }
 
             //Long range Heisenberg interactions along legs
             for(int type = 1; type <= 3; ++type)
@@ -326,6 +378,7 @@ class LongRangeSpinLadder : public MPOBuilder
         QH.AAnc(1) = makeLedge(iqlinks.at(0),start_inds) * QH.AA(1);
         QH.AAnc(N) = QH.AA(N) * makeRedge(conj(iqlinks.at(N)),end_inds); 
 
+        initted_ = true;
         }
 
     };
@@ -486,5 +539,8 @@ HTerms(const SpinHalf& model,
         }
     }
 
+#undef Cout
+#undef Endl
+#undef Format
 
 #endif

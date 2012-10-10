@@ -212,15 +212,21 @@ makeLongRangeH(const Model& model, MPOt<Tensor>& H)
         writedata("Z_V2_diff",V2_diff,1,params.do_plot_self);
         }
 
+    Option pin;
+    if(params.pinning != 0)
+        pin = Pinning(params.pinning);
+
     if(params.smooth)
         {
         cout << "\nUsing smooth long range model.\n" << endl;
-        H = LongRangeSpinLadder(model,smoothing,fit,fitXY,fitZ);
+        H = LongRangeSpinLadder(model,smoothing,fit,fitXY,fitZ,pin,
+                        StaggerPinning(params.stagger_pinning));
         }
     else
         {
         cout << "\nUsing long range model.\n" << endl;
-        H = LongRangeSpinLadder(model,fit,fitXY,fitZ);
+        H = LongRangeSpinLadder(model,fit,fitXY,fitZ,pin,
+                    StaggerPinning(params.stagger_pinning));
         }
 
     }
@@ -466,7 +472,7 @@ int main(int argc, char* argv[])
             makeLongRangeH(model,H);
             }
 
-        TopOpts opts(model);
+        TopOpts<IQTensor> opts(psi,model);
         if(params.esaccuracy > 0)
             opts.esAccuracy(params.esaccuracy);
         //opts.notifyTimes(4);
@@ -545,7 +551,7 @@ int main(int argc, char* argv[])
         {
         IQMPS newpsi(model,initState);
 
-        TopOpts opts(model);
+        TopOpts<IQTensor> opts(newpsi,model);
 
         cout << format("\n\nBeginning DMRG calculation for state %d\n") % state << endl;
 
@@ -709,7 +715,7 @@ int main(int argc, char* argv[])
             makeLongRangeH(model,H);
             }
 
-        TopOpts opts(model);
+        TopOpts<ITensor> opts(psi,model);
         if(params.esaccuracy > 0)
             opts.esAccuracy(params.esaccuracy);
         //opts.notifyTimes(4);
@@ -770,7 +776,7 @@ int main(int argc, char* argv[])
         {
         MPS newpsi(model,initState);
 
-        TopOpts opts(model);
+        TopOpts<ITensor> opts(newpsi,model);
 
         cout << format("\n\nBeginning DMRG calculation for state %d\n") % state << endl;
 

@@ -6,6 +6,7 @@
 #define Cout std::cout
 #define Endl std::endl
 
+template<class Tensor>
 class TopOpts : public DMRGObserver
     {
     public:
@@ -13,7 +14,7 @@ class TopOpts : public DMRGObserver
     typedef DMRGObserver 
     Parent;
 
-    TopOpts(//const IQMPS& psi, 
+    TopOpts(const MPSt<Tensor>& psi, 
             const SpinHalf& model, const std::string& pfix = "");
 
     const std::string& 
@@ -47,7 +48,7 @@ class TopOpts : public DMRGObserver
     // Data Members
     //
 
-    //const IQMPS& psi_;
+    const MPSt<Tensor>& psi_;
     const SpinHalf& model_;
 
     bool do_plot_self;
@@ -64,11 +65,12 @@ class TopOpts : public DMRGObserver
 
     };
 
-inline TopOpts::
-TopOpts(//const IQMPS& psi,
+template <class Tensor>
+inline TopOpts<Tensor>::
+TopOpts(const MPSt<Tensor>& psi,
         const SpinHalf& model, const std::string& pfix)
     : 
-    //psi_(psi), 
+    psi_(psi), 
     model_(model), 
     do_plot_self(true),
     notify_times_(-1), 
@@ -78,7 +80,8 @@ TopOpts(//const IQMPS& psi,
     es_accuracy_(-1)
     { }
 
-void inline TopOpts::
+template <class Tensor>
+void inline TopOpts<Tensor>::
 measure(int sw, int ha, int b, const SVDWorker& svd, Real energy,
         const Option& opt1, const Option& opt2,
         const Option& opt3, const Option& opt4)
@@ -97,6 +100,9 @@ measure(int sw, int ha, int b, const SVDWorker& svd, Real energy,
             splitting += sqrt(fabs(eigs(2*j-1)))-sqrt(fabs(eigs(2*j)));
 
         std::cout << boost::format("\nEntanglement splitting at bond %d = %.10f") % b % splitting << std::endl;
+
+        Cout << Format("Sx at %d = %.10f") % b % Dot(conj(primesite(psi_.AA(b))),model_.sx(b)*psi_.AA(b)) << Endl;
+        Cout << Format("Sz at %d = %.10f") % b % Dot(conj(primesite(psi_.AA(b))),model_.sz(b)*psi_.AA(b)) << Endl;
 
         if(b == model_.NN()/2)
             {
@@ -122,16 +128,25 @@ measure(int sw, int ha, int b, const SVDWorker& svd, Real energy,
 
     }
 
-bool TopOpts::
+template <class Tensor>
+bool inline TopOpts<Tensor>::
 checkDone(int sw, const SVDWorker& svd, Real energy,
           const Option& opt1, const Option& opt2)
     {
-    if(Parent::checkDone(sw,svd,energy,opt1,opt2)) return true;
+    if(Parent::checkDone(sw,svd,energy,opt1,opt2)) 
+        return true;
 
     if(es_accuracy_ > 0 && fabs(last_es_-curr_es_) < es_accuracy_)
         {
         Cout << Format("\nEntanglement splitting accuracy goal met, %.2E < %.2E.\n") 
                 % (fabs(last_es_-curr_es_)) % es_accuracy_ << Endl;
+        return true;
+        }
+
+    if(fileExists("STOP_DMRG"))
+        {
+        Cout << "File STOP_DMRG found: stopping this DMRG run." << Endl;
+        system("rm -f STOP_DMRG");
         return true;
         }
 
